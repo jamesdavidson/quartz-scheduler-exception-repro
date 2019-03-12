@@ -82,7 +82,7 @@ source <(curl -s http://169.254.169.254/latest/user-data)
 echo SELECT 1 | mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
 
 # create the QRTZ_* database tables
-cat /opt/quartz-scheduler-exception-repro/setup/qrtz.sql | mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
+cat /opt/quartz-scheduler-exception-repro/qrtz.sql | mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
 
 # run the mini application
 cd /opt/quartz-scheduler-exception-repro/complete && mvn spring-boot:run
