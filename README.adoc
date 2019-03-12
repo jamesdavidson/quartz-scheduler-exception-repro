@@ -1,3 +1,5 @@
+== Quartz JobPersistenceException upon Amazon Aurora (serverless) capacity change
+
 We're having trouble with the Quartz job scheduling library when the database it
 is using scales up or down. In the logs we can see messages like:
 
