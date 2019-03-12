@@ -12,9 +12,9 @@ public class DatabaseConfiguration {
     @Bean
     public HikariDataSource dataSource() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://quartz.cluster-c4b3f88cfb54.ap-southeast-1.rds.amazonaws.com:3306/quartz");
-        config.setUsername("quartz");
-        config.setPassword("quartz");
+        config.setJdbcUrl("jdbc:mysql://"+System.getenv("MYSQL_HOSTNAME")+":3306/"+System.getenv("MYSQL_DATABASE"));
+        config.setUsername(System.getenv("MYSQL_USERNAME"));
+        config.setPassword(System.getenv("MYSQL_PASSWORD"));
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
