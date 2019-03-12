@@ -42,7 +42,8 @@ in a VPC. The following instructions are based on a CloudFormation template and
 some bash commands tested with AMI amzn2-ami-hvm-2.0.20190228-x86_64-gp2 and an
 RDS cluster v5.6.10a (serverless mode, not provisioned).
 
-You should only need to provide your VPC id and keypair name.
+To create a CloudFormation stack at the CLI you can use the following command.
+You should only need to change the KeyName and VpcId parameters.
 
 [source,bash]
 ----
@@ -67,7 +68,7 @@ After the database cluster becomes available and the instance boots up...
 [source,bash]
 ----
 # install deps on the EC2 instance
-yum install -y git java maven
+yum install -y git java maven mysql
 
 # check out code
 cd /opt && git clone https://github.com/jamesdavidson/quartz-scheduler-exception-repro
@@ -75,10 +76,18 @@ cd /opt && git clone https://github.com/jamesdavidson/quartz-scheduler-exception
 # set environment variable parameters
 source <(curl -s http://169.254.169.254/latest/user-data)
 
+# sanity check
+echo SELECT 1 | mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
+
 # create the QRTZ_* database tables
-cat /opt/quartz-scheduler-exception-repro/setup/qrtz.sql \
- mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
+cat /opt/quartz-scheduler-exception-repro/setup/qrtz.sql | mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
 
 # run the mini application
 cd /opt/quartz-scheduler-exception-repro/complete && mvn spring-boot:run
 ----
+
+Once the application is up and running, log in to the AWS Management Console and
+choose the RDS service, find the database cluster, open the 'Actions' menu,
+click 'Set Capacity' and change from two to four units of capacity. After one or
+two minutes you should see some exceptions appear in the console output of the
+Spring Boot mini-application.
