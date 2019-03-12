@@ -1,84 +1,93 @@
-:toc:
-:spring_version: current
-:icons: font
-:source-highlighter: prettify
-:project_id: gs-scheduling-tasks
-This guide walks you through the steps for scheduling tasks with Spring.
+We're having trouble with the Quartz job scheduling library when the database it
+is using scales up or down. In the logs we can see messages like:
 
-== What you'll build
-
-You'll build an application that prints out the current time every five seconds using Spring's `@Scheduled` annotation.
-
-== What you'll need
-
-:java_version: 1.8
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/prereq_editor_jdk_buildtools.adoc[]
-
-
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/how_to_complete_this_guide.adoc[]
-
-
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/hide-show-gradle.adoc[]
-
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/hide-show-maven.adoc[]
-
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/hide-show-sts.adoc[]
-
-
-
-[[initial]]
-== Create a scheduled task
-Now that you've set up your project, you can create a scheduled task.
-
-`src/main/java/hello/ScheduledTasks.java`
-[source,java]
 ----
-include::complete/src/main/java/hello/ScheduledTasks.java[]
+2019-03-12 06:58:07.733 ERROR 3313 --- [_ClusterManager] o.s.s.quartz.LocalDataSourceJobStore     : ClusterManager: Error managing cluster: Failure updating scheduler state when checking-in: Column 'INSTANCE_NAME' cannot be null
+
+org.quartz.JobPersistenceException: Failure updating scheduler state when checking-in: Column 'INSTANCE_NAME' cannot be null
+        at org.quartz.impl.jdbcjobstore.JobStoreSupport.clusterCheckIn(JobStoreSupport.java:3406) ~[quartz-2.2.1.jar:na]
+        at org.quartz.impl.jdbcjobstore.JobStoreSupport.doCheckin(JobStoreSupport.java:3253) ~[quartz-2.2.1.jar:na]
+        at org.quartz.impl.jdbcjobstore.JobStoreSupport$ClusterManager.manage(JobStoreSupport.java:3858) [quartz-2.2.1.jar:na]
+        at org.quartz.impl.jdbcjobstore.JobStoreSupport$ClusterManager.run(JobStoreSupport.java:3895) [quartz-2.2.1.jar:na]
+Caused by: com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException: Column 'INSTANCE_NAME' cannot be null
+        at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method) ~[na:1.8.0_191]
+        at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62) ~[na:1.8.0_191]
+        at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45) ~[na:1.8.0_191]
+        at java.lang.reflect.Constructor.newInstance(Constructor.java:423) ~[na:1.8.0_191]
+        at com.mysql.jdbc.Util.handleNewInstance(Util.java:404) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.Util.getInstance(Util.java:387) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.SQLError.createSQLException(SQLError.java:934) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.MysqlIO.checkErrorPacket(MysqlIO.java:3966) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.MysqlIO.checkErrorPacket(MysqlIO.java:3902) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.MysqlIO.sendCommand(MysqlIO.java:2526) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.ServerPreparedStatement.serverExecute(ServerPreparedStatement.java:1284) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.ServerPreparedStatement.executeInternal(ServerPreparedStatement.java:785) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.PreparedStatement.executeUpdateInternal(PreparedStatement.java:2073) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.PreparedStatement.executeUpdateInternal(PreparedStatement.java:2009) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.PreparedStatement.executeLargeUpdate(PreparedStatement.java:5098) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.mysql.jdbc.PreparedStatement.executeUpdate(PreparedStatement.java:1994) ~[mysql-connector-java-5.1.39.jar:5.1.39]
+        at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeUpdate(ProxyPreparedStatement.java:61) ~[HikariCP-2.5.1.jar:na]
+        at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeUpdate(HikariProxyPreparedStatement.java) ~[HikariCP-2.5.1.jar:na]
+        at org.quartz.impl.jdbcjobstore.StdJDBCDelegate.insertSchedulerState(StdJDBCDelegate.java:2948) ~[quartz-2.2.1.jar:na]
+        at org.quartz.impl.jdbcjobstore.JobStoreSupport.clusterCheckIn(JobStoreSupport.java:3401) ~[quartz-2.2.1.jar:na]
+        ... 3 common frames omitted
 ----
 
-The `Scheduled` annotation defines when a particular method runs.
-NOTE: This example uses `fixedRate`, which specifies the interval between method invocations measured from the start time of each invocation. There are http://docs.spring.io/spring/docs/{spring_version}/spring-framework-reference/html/scheduling.html#scheduling-annotation-support-scheduled[other options], like `fixedDelay`, which specifies the interval between invocations measured from the completion of the task. You can also http://docs.spring.io/spring/docs/{spring_version}/javadoc-api/org/springframework/scheduling/support/CronSequenceGenerator.html[use `@Scheduled(cron=". . .")` expressions for more sophisticated task scheduling].
+Our database scales up and down dynamically because it is a MySQL-compatible
+Amazon Aurora RDS cluster running in serverless mode. We do not have this
+problem if we just use a standard RDS instance.
 
-== Enable Scheduling
+To run this repro code you will need to provision a database and an EC2 instance
+in a VPC. The following instructions are based on a CloudFormation template and
+some bash commands tested with AMI amzn2-ami-hvm-2.0.20190228-x86_64-gp2 and an
+RDS cluster v5.6.10a (serverless mode, not provisioned).
 
-Although scheduled tasks can be embedded in web apps and WAR files, the simpler approach demonstrated below creates a standalone application. You package everything in a single, executable JAR file, driven by a good old Java `main()` method.
+To create a CloudFormation stack at the CLI you can use the following command.
+You should only need to change the KeyName and VpcId parameters.
 
-`src/main/java/hello/Application.java`
-[source,java]
+[source,bash]
 ----
-include::complete/src/main/java/hello/Application.java[]
+# on your laptop
+aws cloudformation create-stack \
+ --region ap-southeast-1 \
+ --profile dev \
+ --stack-name "minimal-repro-`date +%s`" \
+ --tags \
+   Key=Environment,Value="snapshot" \
+ --parameters \
+   ParameterKey=ImageId,ParameterValue="ami-00158b185c8cc09dc" \
+   ParameterKey=KeyName,ParameterValue="james" \
+   ParameterKey=InstanceType,ParameterValue="m4.large" \
+   ParameterKey=NameTag,ParameterValue="minimal_repro" \
+   ParameterKey=VpcId,ParameterValue="vpc-5be85430" \
+  --template-body file://minimal_repro_cloudformation_template.json
 ----
 
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/spring-boot-application.adoc[]
+After the database cluster becomes available and the instance boots up...
 
-http://docs.spring.io/spring/docs/current/spring-framework-reference/htmlsingle/#scheduling-enable-annotation-support[`@EnableScheduling`] ensures that a background task executor is created. Without it, nothing gets scheduled.
+[source,bash]
+----
+# install deps on the EC2 instance
+yum install -y git java maven mysql
 
+# check out code
+cd /opt && git clone https://github.com/jamesdavidson/quartz-scheduler-exception-repro
 
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/build_an_executable_jar_subhead.adoc[]
+# set environment variable parameters
+source <(curl -s http://169.254.169.254/latest/user-data)
 
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/build_an_executable_jar_with_both.adoc[]
+# sanity check
+echo SELECT 1 | mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
 
+# create the QRTZ_* database tables
+cat /opt/quartz-scheduler-exception-repro/setup/qrtz.sql | mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
 
+# run the mini application
+cd /opt/quartz-scheduler-exception-repro/complete && mvn spring-boot:run
+----
 
-Logging output is displayed and you can see from the logs that it is on a background thread. You should see your scheduled task fire every 5 seconds:
-
-....
-[...]
-2016-08-25 13:10:00.143  INFO 31565 --- [pool-1-thread-1] hello.ScheduledTasks : The time is now 13:10:00
-2016-08-25 13:10:05.143  INFO 31565 --- [pool-1-thread-1] hello.ScheduledTasks : The time is now 13:10:05
-2016-08-25 13:10:10.143  INFO 31565 --- [pool-1-thread-1] hello.ScheduledTasks : The time is now 13:10:10
-2016-08-25 13:10:15.143  INFO 31565 --- [pool-1-thread-1] hello.ScheduledTasks : The time is now 13:10:15
-....
-
-== Summary
-
-Congratulations! You created an application with a scheduled task. Heck, the actual code was shorter than the build file! This technique works in any type of application.
-
-== See Also
-
-The following guides may also be helpful:
-
-* https://spring.io/guides/gs/spring-boot/[Building an Application with Spring Boot]
-* https://spring.io/guides/gs/batch-processing/[Creating a Batch Service]
-
-include::https://raw.githubusercontent.com/spring-guides/getting-started-macros/master/footer.adoc[]
+Once the application is up and running, log in to the AWS Management Console and
+choose the RDS service, find the database cluster, open the 'Actions' menu,
+click 'Set Capacity' and change from two to four units of capacity. After one or
+two minutes you should see some exceptions appear in the console output of the
+Spring Boot mini-application.
