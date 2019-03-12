@@ -1,0 +1,45 @@
+To run this repro code you will need to provision a database and an EC2 instance
+in a VPC. The following instructions are based on a CloudFormation template and
+some bash commands tested with AMI amzn2-ami-hvm-2.0.20190228-x86_64-gp2 and an
+RDS cluster v5.6.10a (serverless mode, not provisioned).
+
+You should only need to provide your VPC id and keypair name.
+
+[source,bash]
+----
+# on your laptop
+aws cloudformation create-stack \
+ --region ap-southeast-1 \
+ --profile dev \
+ --stack-name "minimal-repro-`date +%s`" \
+ --tags \
+   Key=Environment,Value="snapshot" \
+ --parameters \
+   ParameterKey=ImageId,ParameterValue="ami-00158b185c8cc09dc" \
+   ParameterKey=KeyName,ParameterValue="james" \
+   ParameterKey=InstanceType,ParameterValue="m4.large" \
+   ParameterKey=NameTag,ParameterValue="minimal_repro" \
+   ParameterKey=VpcId,ParameterValue="vpc-5be85430" \
+  --template-body file://minimal_repro_cloudformation_template.json
+----
+
+After the database cluster becomes available and the instance boots up...
+
+[source,bash]
+----
+# install deps on the EC2 instance
+yum install -y git java maven
+
+# check out code
+cd /opt && git clone https://github.com/jamesdavidson/quartz-scheduler-exception-repro
+
+# set environment variable parameters
+source <(curl -s http://169.254.169.254/latest/user-data)
+
+# create the QRTZ_* database tables
+cat /opt/quartz-scheduler-exception-repro/setup/qrtz.sql \
+ mysql -u $MYSQL_USERNAME -p$MYSQL_PASSWORD -h $MYSQL_HOSTNAME $MYSQL_DATABASE
+
+# run the mini application
+cd /opt/quartz-scheduler-exception-repro/complete && mvn spring-boot:run
+----

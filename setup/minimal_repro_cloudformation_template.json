@@ -1,0 +1,142 @@
+{
+  "Parameters": {
+    "ImageId": {
+      "Type": "String"
+    },
+    "KeyName": {
+      "Type": "String"
+    },
+    "InstanceType": {
+      "Type": "String"
+    },
+    "NameTag": {
+      "Type": "String"
+    },
+    "VpcId": {
+      "Type": "String"
+    },
+    "MysqlDatabase": {
+      "Type": "String",
+      "Default": "quartz"
+    },
+    "MysqlUsername": {
+      "Type": "String",
+      "Default": "quartz"
+    },
+    "MysqlPassword": {
+      "Type": "String",
+      "Default": "8b93e42fff8f9c33036cb6a5250c921d"
+    }
+  },
+  "Resources": {
+    "MinimalReproSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "minimal_repro",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 0,
+            "ToPort": 65535,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 0,
+            "ToPort": 65535,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "MinimalReproDatabaseCluster": {
+      "Properties": {
+        "Engine": "aurora",
+        "EngineMode": "serverless",
+        "EngineVersion": "5.6.10a",
+        "DatabaseName": {
+          "Ref": "MysqlDatabase"
+        },
+        "MasterUsername": {
+          "Ref": "MysqlUsername"
+        },
+        "MasterUserPassword": {
+          "Ref": "MysqlPassword"
+        },
+        "ScalingConfiguration": {
+          "AutoPause": false,
+          "MinCapacity": 2,
+          "MaxCapacity": 4
+        },
+        "VpcSecurityGroupIds": [
+          {
+            "Ref": "MinimalReproSecurityGroup"
+          }
+        ]
+      },
+      "Type": "AWS::RDS::DBCluster"
+    },
+    "MinimalReproInstance": {
+      "Properties": {
+        "ImageId": {
+          "Ref": "ImageId"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "NameTag"
+            }
+          }
+        ],
+        "SecurityGroupIds": [
+          {
+            "Ref": "MinimalReproSecurityGroup"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "export MYSQL_HOSTNAME=",
+                {
+                  "Fn::GetAtt": [
+                    "MinimalReproDatabaseCluster",
+                    "Endpoint.Address"
+                  ]
+                },
+                "\nexport MYSQL_DATABASE=",
+                {
+                  "Ref": "MysqlDatabase"
+                },
+                "\nexport MYSQL_USERNAME=",
+                {
+                  "Ref": "MysqlUsername"
+                },
+                "\nexport MYSQL_PASSWORD=",
+                {
+                  "Ref": "MysqlPassword"
+                },
+                "\n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    }
+  }
+}
