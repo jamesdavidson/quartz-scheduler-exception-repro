@@ -18,6 +18,7 @@
         <quartz.version>2.2.1</quartz.version>
         <hikaricp.version>2.5.1</hikaricp.version>
         <mysql.version>5.1.39</mysql.version>
+        <javax.inject.version>1</javax.inject.version>
     </properties>
 
     <dependencies>
@@ -44,6 +45,11 @@
             <artifactId>awaitility</artifactId>
             <version>3.1.2</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>${javax.inject.version}</version>
         </dependency>
         <dependency>
             <groupId>org.quartz-scheduler</groupId>
