@@ -16,7 +16,6 @@ public class DatabaseConfiguration {
                   +System.getenv("MYSQL_HOSTNAME")+"/"
                   +System.getenv("MYSQL_DATABASE")
                   +"?useSSL=true"
-                  +"&parseInfoCacheFactory=hello.PerConnectionLRUFactory"
                   +"&cachePrepStmts=true"
                   +"&prepStmtCacheSize=250"
                   +"&prepStmtCacheSqlLimit=2048"
