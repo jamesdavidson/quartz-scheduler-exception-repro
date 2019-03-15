@@ -16,7 +16,7 @@
     <properties>
         <java.version>1.8</java.version>
         <quartz.version>2.2.1</quartz.version>
-        <hikaricp.version>2.5.1</hikaricp.version>
+        <hikaricp.version>3.3.1</hikaricp.version>
         <mysql.version>8.0.13</mysql.version>
         <javax.inject.version>1</javax.inject.version>
     </properties>
