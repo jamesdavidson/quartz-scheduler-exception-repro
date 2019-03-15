@@ -16,6 +16,7 @@ public class DatabaseConfiguration {
         config.setUsername(System.getenv("MYSQL_USERNAME"));
         config.setPassword(System.getenv("MYSQL_PASSWORD"));
         config.addDataSourceProperty("cachePrepStmts", "true");
+        config.addDataSourceProperty("parseInfoCacheFactory", "hello.PerConnectionLRUFactory");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         config.addDataSourceProperty("useServerPrepStmts", "true"); // false fixes problem ?!
