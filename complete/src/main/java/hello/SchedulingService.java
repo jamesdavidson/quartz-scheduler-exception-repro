@@ -6,14 +6,13 @@ import java.util.Properties;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.context.annotation.Bean;
-
-import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariDataSource;
 
 @Service
 public class SchedulingService {
 
     @Inject
-    private DataSource dataSource;
+    private HikariDataSource dataSource;
 
     @Bean
     public SchedulerFactoryBean schedulerFactoryBean() {
